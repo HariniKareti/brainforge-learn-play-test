@@ -39,8 +39,7 @@ const App = () => (
             <Route path="/play/traversal-race" element={<TraversalRaceGame />} />
             <Route path="/play/dfs-graph" element={<DFSGraphGame />} />
             <Route path="/test" element={<TestHub />} />
-            <Route path="/test/endless-quiz" element={<EndlessQuiz />} />
-            <Route path="/test/speed-round" element={<SpeedRound />} />
+            <Route path="/test/quiz/:topic" element={<EndlessQuiz />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
