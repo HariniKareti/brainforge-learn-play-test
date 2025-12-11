@@ -52,7 +52,7 @@ export default function Dashboard() {
             icon={Gamepad2}
             to="/play"
             color="primary"
-            available={false}
+            available
           />
           
           <ModeCard
