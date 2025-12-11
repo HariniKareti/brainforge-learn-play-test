@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
 interface GameMode {
   id: string;
@@ -23,7 +22,7 @@ const gameModes: GameMode[] = [
   {
     id: 'tree-builder',
     title: 'Tree Builder',
-    description: 'Build binary trees by placing nodes correctly. Race against time!',
+    description: 'Binary Tree (Levels 1-4) → BST Mode (Levels 5-10). Place seeds correctly!',
     icon: '🌲',
     color: 'topic-tree',
     difficulty: 'Easy',
@@ -32,7 +31,7 @@ const gameModes: GameMode[] = [
   {
     id: 'bst-insert',
     title: 'BST Insert Challenge',
-    description: 'Insert values into BST following the correct path. Speed matters!',
+    description: 'Find the correct insertion point in a BST. 10 rounds to master!',
     icon: '🔍',
     color: 'topic-bst',
     difficulty: 'Medium',
@@ -48,10 +47,10 @@ const gameModes: GameMode[] = [
     available: true,
   },
   {
-    id: 'pathfinder',
-    title: 'Pathfinder',
-    description: 'Find the shortest path using BFS. Navigate through mazes!',
-    icon: '🧭',
+    id: 'dfs-graph',
+    title: 'DFS & BST Finder',
+    description: 'Click nodes in DFS order or find the valid BST among imposters!',
+    icon: '🔎',
     color: 'topic-dfs',
     difficulty: 'Hard',
     available: true,
@@ -66,11 +65,6 @@ const difficultyColors = {
 
 export default function PlayHub() {
   const { user, loading } = useAuth();
-  const [highScores, setHighScores] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    // In the future, fetch high scores from database
-  }, [user]);
 
   if (loading) {
     return (
@@ -103,7 +97,7 @@ export default function PlayHub() {
           </h1>
           <p className="text-muted-foreground text-lg">
             Test your skills in timed challenges. Earn points, climb leaderboards, 
-            and prove your mastery!
+            and prove your mastery! Max 10 levels per game.
           </p>
         </div>
 
@@ -115,8 +109,8 @@ export default function PlayHub() {
                 <Trophy className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">Total Score</p>
+                <p className="text-2xl font-bold">4</p>
+                <p className="text-xs text-muted-foreground">Games</p>
               </div>
             </CardContent>
           </Card>
@@ -126,8 +120,8 @@ export default function PlayHub() {
                 <Zap className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
-                <p className="text-xs text-muted-foreground">Best Streak</p>
+                <p className="text-2xl font-bold">10</p>
+                <p className="text-xs text-muted-foreground">Max Levels</p>
               </div>
             </CardContent>
           </Card>
@@ -137,8 +131,8 @@ export default function PlayHub() {
                 <Target className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0%</p>
-                <p className="text-xs text-muted-foreground">Accuracy</p>
+                <p className="text-2xl font-bold">100%</p>
+                <p className="text-xs text-muted-foreground">Target</p>
               </div>
             </CardContent>
           </Card>

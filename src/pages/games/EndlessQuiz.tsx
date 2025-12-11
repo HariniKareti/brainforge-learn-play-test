@@ -1,14 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Leaderboard } from '@/components/Leaderboard';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Heart, Zap, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Heart, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -20,272 +19,396 @@ interface Question {
   category: string;
 }
 
-const allQuestions: Question[] = [
-  // Binary Tree
-  { id: 1, question: "What is the maximum number of nodes at level L of a binary tree?", options: ["L", "2^L", "2L", "L^2"], correct: 1, category: "Binary Tree" },
-  { id: 2, question: "In a full binary tree, how many leaf nodes are there if there are N internal nodes?", options: ["N", "N+1", "N-1", "2N"], correct: 1, category: "Binary Tree" },
-  { id: 3, question: "What is the height of a binary tree with N nodes in the worst case?", options: ["log N", "N", "N-1", "N/2"], correct: 2, category: "Binary Tree" },
+const csQuestions: Question[] = [
+  // Automata Theory
+  { id: 1, question: "What type of automaton accepts regular languages?", options: ["PDA", "DFA/NFA", "Turing Machine", "Linear Bounded"], correct: 1, category: "Automata" },
+  { id: 2, question: "Which automaton uses a stack for memory?", options: ["DFA", "NFA", "PDA", "Finite Automaton"], correct: 2, category: "Automata" },
+  { id: 3, question: "A DFA must have exactly how many transitions per symbol from each state?", options: ["Zero", "One", "Multiple", "Unlimited"], correct: 1, category: "Automata" },
+  { id: 4, question: "What does ε-transition mean in NFA?", options: ["End state", "Empty/null transition", "Error", "Exit"], correct: 1, category: "Automata" },
   
-  // BST
-  { id: 4, question: "In a BST, where is the smallest element located?", options: ["Root", "Leftmost node", "Rightmost node", "Any leaf"], correct: 1, category: "BST" },
-  { id: 5, question: "What is the time complexity of searching in a balanced BST?", options: ["O(1)", "O(log n)", "O(n)", "O(n log n)"], correct: 1, category: "BST" },
-  { id: 6, question: "Which traversal of BST gives elements in sorted order?", options: ["Preorder", "Postorder", "Inorder", "Level order"], correct: 2, category: "BST" },
+  // AVL Trees
+  { id: 5, question: "What is the balance factor range in an AVL tree?", options: ["-2 to 2", "-1 to 1", "0 to 1", "-3 to 3"], correct: 1, category: "AVL" },
+  { id: 6, question: "AVL tree insertion may require:", options: ["Deletion", "Rotation", "Searching", "Sorting"], correct: 1, category: "AVL" },
+  { id: 7, question: "What type of rotation fixes Left-Left imbalance?", options: ["Left", "Right", "Left-Right", "Right-Left"], correct: 1, category: "AVL" },
+  { id: 8, question: "AVL trees guarantee O(log n) for:", options: ["Only search", "Only insert", "All operations", "None"], correct: 2, category: "AVL" },
   
-  // BFS
-  { id: 7, question: "What data structure does BFS use?", options: ["Stack", "Queue", "Array", "Tree"], correct: 1, category: "BFS" },
-  { id: 8, question: "BFS is optimal for finding:", options: ["Longest path", "Shortest path (unweighted)", "All paths", "Cycle detection"], correct: 1, category: "BFS" },
-  { id: 9, question: "What is the time complexity of BFS?", options: ["O(V)", "O(E)", "O(V+E)", "O(V*E)"], correct: 2, category: "BFS" },
-  
-  // DFS
-  { id: 10, question: "What data structure does DFS use?", options: ["Queue", "Stack", "Heap", "Array"], correct: 1, category: "DFS" },
-  { id: 11, question: "Which traversal is NOT a type of DFS?", options: ["Preorder", "Inorder", "Level order", "Postorder"], correct: 2, category: "DFS" },
-  { id: 12, question: "DFS can be used to detect:", options: ["Shortest path", "Cycles in a graph", "Minimum spanning tree", "Maximum flow"], correct: 1, category: "DFS" },
-  
-  // More questions
-  { id: 13, question: "What is the space complexity of BFS?", options: ["O(1)", "O(log n)", "O(n)", "O(n^2)"], correct: 2, category: "BFS" },
-  { id: 14, question: "In postorder traversal, when is the root visited?", options: ["First", "Middle", "Last", "Random"], correct: 2, category: "Binary Tree" },
-  { id: 15, question: "What makes a tree a valid BST?", options: ["Balanced height", "Left < Root < Right", "Complete structure", "All leaves at same level"], correct: 1, category: "BST" },
-  { id: 16, question: "How many children can a node have in a binary tree?", options: ["1", "2", "At most 2", "Any number"], correct: 2, category: "Binary Tree" },
-  { id: 17, question: "What is the predecessor of a node in BST?", options: ["Parent node", "Left child", "Maximum in left subtree", "Minimum in right subtree"], correct: 2, category: "BST" },
-  { id: 18, question: "BFS explores nodes in which order?", options: ["Depth-first", "Level by level", "Random", "Reverse level"], correct: 1, category: "BFS" },
-  { id: 19, question: "What happens in DFS when a dead end is reached?", options: ["Stops", "Restarts", "Backtracks", "Jumps randomly"], correct: 2, category: "DFS" },
-  { id: 20, question: "The successor of a node in BST is:", options: ["Maximum in left subtree", "Minimum in right subtree", "Parent node", "Right child"], correct: 1, category: "BST" },
+  // Regex
+  { id: 9, question: "In regex, what does * mean?", options: ["One or more", "Zero or more", "Exactly one", "Optional"], correct: 1, category: "Regex" },
+  { id: 10, question: "What does [a-z] match?", options: ["Only 'a' or 'z'", "Any lowercase letter", "The string 'a-z'", "Nothing"], correct: 1, category: "Regex" },
 ];
+
+interface QuestionBubble {
+  id: number;
+  x: number;
+  y: number;
+  question: Question;
+}
 
 const EndlessQuiz = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const { playSound } = useSoundEffects(soundEnabled);
+  const gameRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number>(0);
   
-  const [gameState, setGameState] = useState<'ready' | 'playing' | 'gameOver'>('ready');
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [usedQuestions, setUsedQuestions] = useState<number[]>([]);
-  const [score, setScore] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [gameState, setGameState] = useState<'ready' | 'playing' | 'paused' | 'gameOver'>('ready');
   const [lives, setLives] = useState(3);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
-  const [totalAnswers, setTotalAnswers] = useState(0);
+  const [score, setScore] = useState(0);
+  const [playerY, setPlayerY] = useState(300);
+  const [isJumping, setIsJumping] = useState(false);
+  const [velocity, setVelocity] = useState(0);
+  const [bubbles, setBubbles] = useState<QuestionBubble[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [gameSpeed, setGameSpeed] = useState(3);
+  const [backgroundOffset, setBackgroundOffset] = useState(0);
+  
+  const GRAVITY = 0.5;
+  const JUMP_FORCE = -12;
+  const GROUND_Y = 300;
+  const PLAYER_SIZE = 50;
+  const BUBBLE_SIZE = 40;
 
-  const getNextQuestion = useCallback(() => {
-    const available = allQuestions.filter(q => !usedQuestions.includes(q.id));
-    if (available.length === 0) {
-      setUsedQuestions([]);
-      return allQuestions[Math.floor(Math.random() * allQuestions.length)];
+  const jump = useCallback(() => {
+    if (!isJumping && gameState === 'playing') {
+      setIsJumping(true);
+      setVelocity(JUMP_FORCE);
+      playSound('click');
     }
-    return available[Math.floor(Math.random() * available.length)];
-  }, [usedQuestions]);
+  }, [isJumping, gameState, playSound]);
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.code === 'Space' || e.code === 'ArrowUp') && gameState === 'playing') {
+        e.preventDefault();
+        jump();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [jump, gameState]);
+
+  // Game loop
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const gameLoop = () => {
+      // Update player position
+      setVelocity((v) => {
+        const newVel = v + GRAVITY;
+        return newVel;
+      });
+
+      setPlayerY((y) => {
+        let newY = y + velocity;
+        if (newY >= GROUND_Y) {
+          newY = GROUND_Y;
+          setIsJumping(false);
+          setVelocity(0);
+        }
+        if (newY < 50) newY = 50;
+        return newY;
+      });
+
+      // Update background
+      setBackgroundOffset((o) => (o + gameSpeed) % 200);
+
+      // Update bubbles
+      setBubbles((prev) => {
+        const updated = prev
+          .map((b) => ({ ...b, x: b.x - gameSpeed }))
+          .filter((b) => b.x > -BUBBLE_SIZE);
+
+        // Collision detection
+        const playerBox = {
+          left: 100,
+          right: 100 + PLAYER_SIZE,
+          top: playerY - PLAYER_SIZE,
+          bottom: playerY,
+        };
+
+        for (const bubble of updated) {
+          const bubbleBox = {
+            left: bubble.x,
+            right: bubble.x + BUBBLE_SIZE,
+            top: bubble.y,
+            bottom: bubble.y + BUBBLE_SIZE,
+          };
+
+          if (
+            playerBox.left < bubbleBox.right &&
+            playerBox.right > bubbleBox.left &&
+            playerBox.top < bubbleBox.bottom &&
+            playerBox.bottom > bubbleBox.top
+          ) {
+            setCurrentQuestion(bubble.question);
+            setGameState('paused');
+            playSound('click');
+            return updated.filter((b) => b.id !== bubble.id);
+          }
+        }
+
+        return updated;
+      });
+
+      // Spawn new bubbles
+      if (Math.random() < 0.01) {
+        const randomQuestion = csQuestions[Math.floor(Math.random() * csQuestions.length)];
+        setBubbles((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            x: 800,
+            y: Math.random() * 200 + 100,
+            question: randomQuestion,
+          },
+        ]);
+      }
+
+      animationRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    animationRef.current = requestAnimationFrame(gameLoop);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [gameState, velocity, playerY, gameSpeed, playSound]);
 
   const startGame = () => {
     setGameState('playing');
-    setScore(0);
-    setStreak(0);
     setLives(3);
-    setUsedQuestions([]);
-    setCorrectAnswers(0);
-    setTotalAnswers(0);
-    const question = getNextQuestion();
-    setCurrentQuestion(question);
+    setScore(0);
+    setPlayerY(GROUND_Y);
+    setVelocity(0);
+    setIsJumping(false);
+    setBubbles([]);
+    setCurrentQuestion(null);
+    setGameSpeed(3);
     playSound('click');
   };
 
   const handleAnswer = async (answerIndex: number) => {
-    if (showResult || !currentQuestion) return;
-    
-    setSelectedAnswer(answerIndex);
-    setShowResult(true);
-    setTotalAnswers(prev => prev + 1);
+    if (!currentQuestion) return;
 
     const isCorrect = answerIndex === currentQuestion.correct;
 
     if (isCorrect) {
       playSound('correct');
-      const streakBonus = Math.floor(streak / 3) * 10;
-      const points = 100 + streakBonus;
-      setScore(prev => prev + points);
-      setStreak(prev => prev + 1);
-      setCorrectAnswers(prev => prev + 1);
-      
-      if (streak > 0 && streak % 5 === 4) {
-        playSound('levelUp');
-      }
+      setScore((s) => s + 10);
+      setGameSpeed((s) => Math.min(s + 0.3, 8));
+      toast.success('+10 points!');
     } else {
       playSound('wrong');
-      setStreak(0);
-      setLives(prev => prev - 1);
-      
-      if (lives <= 1) {
+      const newLives = lives - 1;
+      setLives(newLives);
+
+      if (newLives <= 0) {
         setGameState('gameOver');
         playSound('gameOver');
-        
+
         if (user) {
-          const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / (totalAnswers)) * 100) : 0;
           await supabase.from('game_scores').insert({
             user_id: user.id,
-            game_type: 'endless-quiz',
-            score: score + (isCorrect ? 100 : 0),
-            accuracy,
+            game_type: 'endless-runner',
+            score,
           });
-          toast.success('Score saved to leaderboard!');
+          toast.success('Score saved!');
         }
         return;
       }
     }
 
-    setTimeout(() => {
-      setSelectedAnswer(null);
-      setShowResult(false);
-      setUsedQuestions(prev => [...prev, currentQuestion.id]);
-      setCurrentQuestion(getNextQuestion());
-    }, 1000);
+    setCurrentQuestion(null);
+    setGameState('playing');
+  };
+
+  const renderPixelForest = () => {
+    const trees = [];
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 100 - backgroundOffset + 1000) % 1000 - 100;
+      trees.push(
+        <g key={i} transform={`translate(${x}, 250)`}>
+          {/* Tree trunk */}
+          <rect x="15" y="30" width="20" height="50" fill="#8B4513" />
+          {/* Tree foliage */}
+          <polygon points="25,0 0,30 50,30" fill="#228B22" />
+          <polygon points="25,15 5,40 45,40" fill="#2E8B57" />
+        </g>
+      );
+    }
+    return trees;
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/test')}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate('/test')} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Test Hub
         </Button>
 
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Endless Quiz</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-          >
+          <h1 className="text-3xl font-bold">Endless Runner Quiz</h1>
+          <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)}>
             {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </Button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
-              {gameState === 'ready' && (
-                <motion.div
-                  key="ready"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
+            {/* Game Canvas */}
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div
+                  ref={gameRef}
+                  className="relative w-full h-[400px] bg-gradient-to-b from-sky-400 to-sky-200 cursor-pointer overflow-hidden"
+                  onClick={jump}
+                  style={{ imageRendering: 'pixelated' }}
                 >
-                  <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-8 text-center">
-                      <Zap className="w-16 h-16 mx-auto text-primary mb-4" />
-                      <h2 className="text-2xl font-bold mb-4">Ready to Test Your Knowledge?</h2>
-                      <p className="text-muted-foreground mb-6">
-                        Answer questions about Binary Trees, BST, BFS, and DFS.
-                        <br />You have 3 lives. Keep your streak going for bonus points!
-                      </p>
-                      <Button size="lg" onClick={startGame}>
-                        Start Quiz
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
+                  {/* Sky */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200" />
 
-              {gameState === 'playing' && currentQuestion && (
-                <motion.div
-                  key="playing"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2">
+                  {/* Pixel Art Forest SVG */}
+                  <svg className="absolute inset-0 w-full h-full">
+                    {/* Ground */}
+                    <rect x="0" y="320" width="100%" height="80" fill="#8B4513" />
+                    <rect x="0" y="320" width="100%" height="10" fill="#228B22" />
+                    
+                    {/* Trees */}
+                    {renderPixelForest()}
+                  </svg>
+
+                  {/* UI Overlay */}
+                  <div className="absolute top-4 left-4 flex items-center gap-4 z-20">
+                    <div className="flex items-center gap-1">
                       {[...Array(3)].map((_, i) => (
                         <Heart
                           key={i}
-                          className={`w-6 h-6 ${i < lives ? 'text-red-500 fill-red-500' : 'text-muted'}`}
+                          className={`w-6 h-6 ${i < lives ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
                         />
                       ))}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        Streak: <span className="text-primary font-bold">{streak}</span>
-                      </span>
-                      <span className="text-lg font-bold">
-                        Score: <span className="text-primary">{score}</span>
-                      </span>
+                    <div className="bg-black/50 px-3 py-1 rounded text-white font-mono">
+                      Score: {score}
                     </div>
                   </div>
 
-                  <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-6">
-                      <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                        {currentQuestion.category}
-                      </span>
-                      <h2 className="text-xl font-semibold mt-2 mb-6">
-                        {currentQuestion.question}
-                      </h2>
+                  {/* Player */}
+                  {gameState === 'playing' && (
+                    <motion.div
+                      className="absolute w-[50px] h-[50px] z-10"
+                      style={{
+                        left: 100,
+                        top: playerY - PLAYER_SIZE,
+                      }}
+                      animate={{ rotate: isJumping ? -15 : 0 }}
+                    >
+                      {/* Pixel character */}
+                      <svg viewBox="0 0 16 16" className="w-full h-full" style={{ imageRendering: 'pixelated' }}>
+                        <rect x="6" y="0" width="4" height="4" fill="#FFE4C4" />
+                        <rect x="4" y="4" width="8" height="4" fill="#4169E1" />
+                        <rect x="4" y="8" width="8" height="4" fill="#4169E1" />
+                        <rect x="4" y="12" width="3" height="4" fill="#8B4513" />
+                        <rect x="9" y="12" width="3" height="4" fill="#8B4513" />
+                      </svg>
+                    </motion.div>
+                  )}
 
-                      <div className="grid gap-3">
-                        {currentQuestion.options.map((option, index) => (
-                          <motion.button
-                            key={index}
-                            whileHover={{ scale: showResult ? 1 : 1.02 }}
-                            whileTap={{ scale: showResult ? 1 : 0.98 }}
-                            onClick={() => handleAnswer(index)}
-                            disabled={showResult}
-                            className={`p-4 rounded-lg text-left transition-all ${
-                              showResult
-                                ? index === currentQuestion.correct
-                                  ? 'bg-green-500/20 border-green-500 border-2'
-                                  : index === selectedAnswer
-                                    ? 'bg-red-500/20 border-red-500 border-2'
-                                    : 'bg-muted/30 border border-transparent'
-                                : 'bg-muted/50 hover:bg-muted border border-transparent hover:border-primary/50'
-                            }`}
-                          >
-                            {option}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
+                  {/* Question Bubbles */}
+                  {gameState === 'playing' &&
+                    bubbles.map((bubble) => (
+                      <motion.div
+                        key={bubble.id}
+                        className="absolute w-[40px] h-[40px] bg-yellow-400 rounded-full flex items-center justify-center text-2xl border-4 border-yellow-600 shadow-lg"
+                        style={{
+                          left: bubble.x,
+                          top: bubble.y,
+                        }}
+                        animate={{ y: [0, -5, 0] }}
+                        transition={{ repeat: Infinity, duration: 0.5 }}
+                      >
+                        ❓
+                      </motion.div>
+                    ))}
 
-              {gameState === 'gameOver' && (
-                <motion.div
-                  key="gameOver"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-8 text-center">
-                      <h2 className="text-3xl font-bold mb-2">Game Over!</h2>
-                      <p className="text-5xl font-bold text-primary mb-4">{score}</p>
-                      <p className="text-muted-foreground mb-2">
-                        Correct: {correctAnswers} / {totalAnswers}
-                      </p>
-                      <p className="text-muted-foreground mb-6">
-                        Accuracy: {totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0}%
-                      </p>
-                      <div className="flex gap-4 justify-center">
-                        <Button onClick={startGame}>
-                          Play Again
-                        </Button>
-                        <Button variant="outline" onClick={() => navigate('/test')}>
-                          Back to Hub
+                  {/* Start Screen */}
+                  {gameState === 'ready' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-30">
+                      <div className="text-center text-white">
+                        <h2 className="text-4xl font-bold mb-4 pixel-text">Endless Quiz Runner</h2>
+                        <p className="mb-2">Jump to collect question bubbles!</p>
+                        <p className="mb-4 text-sm text-gray-300">Press SPACE or tap to jump</p>
+                        <Button size="lg" onClick={startGame}>
+                          Start Game
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </div>
+                  )}
+
+                  {/* Question Modal */}
+                  <AnimatePresence>
+                    {gameState === 'paused' && currentQuestion && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-center justify-center bg-black/70 z-30"
+                      >
+                        <motion.div
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          className="bg-card p-6 rounded-xl max-w-md w-full mx-4 border-2 border-primary"
+                        >
+                          <span className="text-xs text-muted-foreground uppercase">
+                            {currentQuestion.category}
+                          </span>
+                          <h3 className="text-lg font-semibold mt-1 mb-4">
+                            {currentQuestion.question}
+                          </h3>
+                          <div className="grid gap-2">
+                            {currentQuestion.options.map((option, index) => (
+                              <Button
+                                key={index}
+                                variant="outline"
+                                className="justify-start text-left h-auto py-3"
+                                onClick={() => handleAnswer(index)}
+                              >
+                                {option}
+                              </Button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Game Over */}
+                  {gameState === 'gameOver' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
+                      <div className="text-center text-white">
+                        <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
+                        <p className="text-5xl font-bold text-primary mb-4">{score}</p>
+                        <div className="flex gap-4 justify-center">
+                          <Button onClick={startGame}>Play Again</Button>
+                          <Button variant="outline" onClick={() => navigate('/test')}>
+                            Back to Hub
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              Press SPACE, UP ARROW, or tap/click to jump
+            </p>
           </div>
 
           <div>
-            <Leaderboard gameType="endless-quiz" title="Top Scores" limit={10} />
+            <Leaderboard gameType="endless-runner" title="Top Runners" limit={10} />
           </div>
         </div>
       </main>

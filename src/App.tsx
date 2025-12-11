@@ -12,7 +12,7 @@ import PlayHub from "./pages/PlayHub";
 import TreeBuilderGame from "./pages/games/TreeBuilderGame";
 import BSTInsertGame from "./pages/games/BSTInsertGame";
 import TraversalRaceGame from "./pages/games/TraversalRaceGame";
-import PathfinderGame from "./pages/games/PathfinderGame";
+import DFSGraphGame from "./pages/games/DFSGraphGame";
 import TestHub from "./pages/TestHub";
 import EndlessQuiz from "./pages/games/EndlessQuiz";
 import SpeedRound from "./pages/games/SpeedRound";
@@ -37,7 +37,7 @@ const App = () => (
             <Route path="/play/tree-builder" element={<TreeBuilderGame />} />
             <Route path="/play/bst-insert" element={<BSTInsertGame />} />
             <Route path="/play/traversal-race" element={<TraversalRaceGame />} />
-            <Route path="/play/pathfinder" element={<PathfinderGame />} />
+            <Route path="/play/dfs-graph" element={<DFSGraphGame />} />
             <Route path="/test" element={<TestHub />} />
             <Route path="/test/endless-quiz" element={<EndlessQuiz />} />
             <Route path="/test/speed-round" element={<SpeedRound />} />
