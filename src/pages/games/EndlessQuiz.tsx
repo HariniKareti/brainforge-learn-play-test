@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,47 +10,34 @@ import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Heart, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-
-interface Question {
-  id: number;
-  question: string;
-  options: string[];
-  correct: number;
-  category: string;
-}
-
-const csQuestions: Question[] = [
-  // Automata Theory
-  { id: 1, question: "What type of automaton accepts regular languages?", options: ["PDA", "DFA/NFA", "Turing Machine", "Linear Bounded"], correct: 1, category: "Automata" },
-  { id: 2, question: "Which automaton uses a stack for memory?", options: ["DFA", "NFA", "PDA", "Finite Automaton"], correct: 2, category: "Automata" },
-  { id: 3, question: "A DFA must have exactly how many transitions per symbol from each state?", options: ["Zero", "One", "Multiple", "Unlimited"], correct: 1, category: "Automata" },
-  { id: 4, question: "What does ε-transition mean in NFA?", options: ["End state", "Empty/null transition", "Error", "Exit"], correct: 1, category: "Automata" },
-  
-  // AVL Trees
-  { id: 5, question: "What is the balance factor range in an AVL tree?", options: ["-2 to 2", "-1 to 1", "0 to 1", "-3 to 3"], correct: 1, category: "AVL" },
-  { id: 6, question: "AVL tree insertion may require:", options: ["Deletion", "Rotation", "Searching", "Sorting"], correct: 1, category: "AVL" },
-  { id: 7, question: "What type of rotation fixes Left-Left imbalance?", options: ["Left", "Right", "Left-Right", "Right-Left"], correct: 1, category: "AVL" },
-  { id: 8, question: "AVL trees guarantee O(log n) for:", options: ["Only search", "Only insert", "All operations", "None"], correct: 2, category: "AVL" },
-  
-  // Regex
-  { id: 9, question: "In regex, what does * mean?", options: ["One or more", "Zero or more", "Exactly one", "Optional"], correct: 1, category: "Regex" },
-  { id: 10, question: "What does [a-z] match?", options: ["Only 'a' or 'z'", "Any lowercase letter", "The string 'a-z'", "Nothing"], correct: 1, category: "Regex" },
-];
+import { getQuestionsForTopic, QuizQuestion } from '@/data/quizQuestions';
 
 interface QuestionBubble {
   id: number;
   x: number;
   y: number;
-  question: Question;
+  question: QuizQuestion;
 }
+
+const topicNames: Record<string, string> = {
+  'binary-trees': 'Binary Trees',
+  'bst': 'Binary Search Trees',
+  'bfs': 'Breadth-First Search',
+  'dfs': 'Depth-First Search',
+  'graphs': 'Graphs',
+};
 
 const EndlessQuiz = () => {
   const navigate = useNavigate();
+  const { topic } = useParams<{ topic: string }>();
   const { user } = useAuth();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const { playSound } = useSoundEffects(soundEnabled);
   const gameRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
+  
+  const questions = getQuestionsForTopic(topic || 'binary-trees');
+  const topicTitle = topicNames[topic || 'binary-trees'] || 'Quiz';
   
   const [gameState, setGameState] = useState<'ready' | 'playing' | 'paused' | 'gameOver'>('ready');
   const [lives, setLives] = useState(3);
@@ -59,15 +46,27 @@ const EndlessQuiz = () => {
   const [isJumping, setIsJumping] = useState(false);
   const [velocity, setVelocity] = useState(0);
   const [bubbles, setBubbles] = useState<QuestionBubble[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
   const [gameSpeed, setGameSpeed] = useState(3);
   const [backgroundOffset, setBackgroundOffset] = useState(0);
+  const [usedQuestions, setUsedQuestions] = useState<Set<number>>(new Set());
   
   const GRAVITY = 0.5;
   const JUMP_FORCE = -12;
   const GROUND_Y = 300;
   const PLAYER_SIZE = 50;
   const BUBBLE_SIZE = 40;
+
+  const getRandomQuestion = useCallback(() => {
+    const availableQuestions = questions.filter(q => !usedQuestions.has(q.id));
+    if (availableQuestions.length === 0) {
+      setUsedQuestions(new Set());
+      return questions[Math.floor(Math.random() * questions.length)];
+    }
+    const question = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+    setUsedQuestions(prev => new Set([...prev, question.id]));
+    return question;
+  }, [questions, usedQuestions]);
 
   const jump = useCallback(() => {
     if (!isJumping && gameState === 'playing') {
@@ -77,7 +76,6 @@ const EndlessQuiz = () => {
     }
   }, [isJumping, gameState, playSound]);
 
-  // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.code === 'Space' || e.code === 'ArrowUp') && gameState === 'playing') {
@@ -90,16 +88,11 @@ const EndlessQuiz = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [jump, gameState]);
 
-  // Game loop
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const gameLoop = () => {
-      // Update player position
-      setVelocity((v) => {
-        const newVel = v + GRAVITY;
-        return newVel;
-      });
+      setVelocity((v) => v + GRAVITY);
 
       setPlayerY((y) => {
         let newY = y + velocity;
@@ -112,16 +105,13 @@ const EndlessQuiz = () => {
         return newY;
       });
 
-      // Update background
       setBackgroundOffset((o) => (o + gameSpeed) % 200);
 
-      // Update bubbles
       setBubbles((prev) => {
         const updated = prev
           .map((b) => ({ ...b, x: b.x - gameSpeed }))
           .filter((b) => b.x > -BUBBLE_SIZE);
 
-        // Collision detection
         const playerBox = {
           left: 100,
           right: 100 + PLAYER_SIZE,
@@ -153,9 +143,8 @@ const EndlessQuiz = () => {
         return updated;
       });
 
-      // Spawn new bubbles
       if (Math.random() < 0.01) {
-        const randomQuestion = csQuestions[Math.floor(Math.random() * csQuestions.length)];
+        const randomQuestion = getRandomQuestion();
         setBubbles((prev) => [
           ...prev,
           {
@@ -172,7 +161,7 @@ const EndlessQuiz = () => {
 
     animationRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [gameState, velocity, playerY, gameSpeed, playSound]);
+  }, [gameState, velocity, playerY, gameSpeed, playSound, getRandomQuestion]);
 
   const startGame = () => {
     setGameState('playing');
@@ -184,6 +173,7 @@ const EndlessQuiz = () => {
     setBubbles([]);
     setCurrentQuestion(null);
     setGameSpeed(3);
+    setUsedQuestions(new Set());
     playSound('click');
   };
 
@@ -228,9 +218,7 @@ const EndlessQuiz = () => {
       const x = (i * 100 - backgroundOffset + 1000) % 1000 - 100;
       trees.push(
         <g key={i} transform={`translate(${x}, 250)`}>
-          {/* Tree trunk */}
           <rect x="15" y="30" width="20" height="50" fill="#8B4513" />
-          {/* Tree foliage */}
           <polygon points="25,0 0,30 50,30" fill="#228B22" />
           <polygon points="25,15 5,40 45,40" fill="#2E8B57" />
         </g>
@@ -249,7 +237,10 @@ const EndlessQuiz = () => {
         </Button>
 
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Endless Runner Quiz</h1>
+          <div>
+            <h1 className="text-3xl font-bold">{topicTitle} Quiz</h1>
+            <p className="text-muted-foreground">Endless Runner Edition</p>
+          </div>
           <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)}>
             {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </Button>
@@ -257,7 +248,6 @@ const EndlessQuiz = () => {
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {/* Game Canvas */}
             <Card className="overflow-hidden">
               <CardContent className="p-0">
                 <div
@@ -266,20 +256,14 @@ const EndlessQuiz = () => {
                   onClick={jump}
                   style={{ imageRendering: 'pixelated' }}
                 >
-                  {/* Sky */}
                   <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200" />
 
-                  {/* Pixel Art Forest SVG */}
                   <svg className="absolute inset-0 w-full h-full">
-                    {/* Ground */}
                     <rect x="0" y="320" width="100%" height="80" fill="#8B4513" />
                     <rect x="0" y="320" width="100%" height="10" fill="#228B22" />
-                    
-                    {/* Trees */}
                     {renderPixelForest()}
                   </svg>
 
-                  {/* UI Overlay */}
                   <div className="absolute top-4 left-4 flex items-center gap-4 z-20">
                     <div className="flex items-center gap-1">
                       {[...Array(3)].map((_, i) => (
@@ -294,7 +278,6 @@ const EndlessQuiz = () => {
                     </div>
                   </div>
 
-                  {/* Player */}
                   {gameState === 'playing' && (
                     <motion.div
                       className="absolute w-[50px] h-[50px] z-10"
@@ -304,7 +287,6 @@ const EndlessQuiz = () => {
                       }}
                       animate={{ rotate: isJumping ? -15 : 0 }}
                     >
-                      {/* Pixel character */}
                       <svg viewBox="0 0 16 16" className="w-full h-full" style={{ imageRendering: 'pixelated' }}>
                         <rect x="6" y="0" width="4" height="4" fill="#FFE4C4" />
                         <rect x="4" y="4" width="8" height="4" fill="#4169E1" />
@@ -315,7 +297,6 @@ const EndlessQuiz = () => {
                     </motion.div>
                   )}
 
-                  {/* Question Bubbles */}
                   {gameState === 'playing' &&
                     bubbles.map((bubble) => (
                       <motion.div
@@ -332,11 +313,11 @@ const EndlessQuiz = () => {
                       </motion.div>
                     ))}
 
-                  {/* Start Screen */}
                   {gameState === 'ready' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-30">
                       <div className="text-center text-white">
-                        <h2 className="text-4xl font-bold mb-4 pixel-text">Endless Quiz Runner</h2>
+                        <h2 className="text-4xl font-bold mb-2">{topicTitle}</h2>
+                        <p className="text-xl mb-4">Endless Quiz Runner</p>
                         <p className="mb-2">Jump to collect question bubbles!</p>
                         <p className="mb-4 text-sm text-gray-300">Press SPACE or tap to jump</p>
                         <Button size="lg" onClick={startGame}>
@@ -346,7 +327,6 @@ const EndlessQuiz = () => {
                     </div>
                   )}
 
-                  {/* Question Modal */}
                   <AnimatePresence>
                     {gameState === 'paused' && currentQuestion && (
                       <motion.div
@@ -361,7 +341,7 @@ const EndlessQuiz = () => {
                           className="bg-card p-6 rounded-xl max-w-md w-full mx-4 border-2 border-primary"
                         >
                           <span className="text-xs text-muted-foreground uppercase">
-                            {currentQuestion.category}
+                            {topicTitle}
                           </span>
                           <h3 className="text-lg font-semibold mt-1 mb-4">
                             {currentQuestion.question}
@@ -383,7 +363,6 @@ const EndlessQuiz = () => {
                     )}
                   </AnimatePresence>
 
-                  {/* Game Over */}
                   {gameState === 'gameOver' && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-30">
                       <div className="text-center text-white">
