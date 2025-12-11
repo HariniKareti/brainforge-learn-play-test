@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/Header';
@@ -5,6 +6,7 @@ import { TopicCard } from '@/components/TopicCard';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const topics = [
   {
@@ -56,6 +58,27 @@ const topics = [
 
 export default function LearnHub() {
   const { user, loading } = useAuth();
+  const [progressMap, setProgressMap] = useState<Record<string, { currentStep: number; completed: boolean }>>({});
+
+  useEffect(() => {
+    async function fetchProgress() {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('learning_progress')
+        .select('topic, current_step, completed')
+        .eq('user_id', user.id);
+      
+      if (data) {
+        const map: Record<string, { currentStep: number; completed: boolean }> = {};
+        data.forEach(item => {
+          map[item.topic] = { currentStep: item.current_step, completed: item.completed };
+        });
+        setProgressMap(map);
+      }
+    }
+    fetchProgress();
+  }, [user]);
 
   if (loading) {
     return (
@@ -94,13 +117,23 @@ export default function LearnHub() {
 
         {/* Topic Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {topics.map((topic, index) => (
-            <TopicCard
-              key={topic.id}
-              {...topic}
-              delay={index * 100}
-            />
-          ))}
+          {topics.map((topic, index) => {
+            const progress = progressMap[topic.id];
+            const progressPercent = progress 
+              ? progress.completed 
+                ? 100 
+                : Math.round((progress.currentStep / topic.lessons) * 100)
+              : 0;
+            
+            return (
+              <TopicCard
+                key={topic.id}
+                {...topic}
+                progress={progressPercent}
+                delay={index * 100}
+              />
+            );
+          })}
         </div>
 
         {/* Info Banner */}

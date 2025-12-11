@@ -11,6 +11,7 @@ interface TopicCardProps {
   color: 'tree' | 'bst' | 'bfs' | 'dfs' | 'avl';
   available: boolean;
   lessons: number;
+  progress?: number;
   delay?: number;
 }
 
@@ -55,10 +56,10 @@ export function TopicCard({
   color, 
   available, 
   lessons,
+  progress = 0,
   delay = 0 
 }: TopicCardProps) {
   const colors = colorMap[color];
-  const progress = 0; // TODO: Get from user's learning progress
 
   const CardContent = (
     <div
