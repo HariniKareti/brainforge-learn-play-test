@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_scores: {
+        Row: {
+          accuracy: number | null
+          created_at: string
+          game_type: string
+          id: string
+          score: number
+          time_taken: number | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string
+          game_type: string
+          id?: string
+          score?: number
+          time_taken?: number | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string
+          game_type?: string
+          id?: string
+          score?: number
+          time_taken?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_progress: {
         Row: {
           completed: boolean

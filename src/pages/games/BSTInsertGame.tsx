@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TreeVisualization, TreeNodeData } from '@/components/learn/TreeVisualization';
-import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, ArrowDown, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type GameState = 'ready' | 'playing' | 'won' | 'lost';
 
@@ -59,6 +60,8 @@ function findInsertPath(root: TreeNodeData | null, value: number): string[] {
 export default function BSTInsertGame() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playSound } = useSoundEffects(soundEnabled);
   
   const [gameState, setGameState] = useState<GameState>('ready');
   const [lives, setLives] = useState(3);
@@ -95,6 +98,7 @@ export default function BSTInsertGame() {
     setScore(0);
     setRound(0);
     generateNewRound();
+    playSound('click');
   };
 
   const generateNewRound = () => {
@@ -132,6 +136,7 @@ export default function BSTInsertGame() {
     if (gameState !== 'playing' || showingAnswer) return;
     
     setSelectedNode(nodeId);
+    playSound('click');
     
     // Check if this is the correct insertion point
     const lastCorrectNode = correctPath[correctPath.length - 1];
@@ -145,6 +150,7 @@ export default function BSTInsertGame() {
       const roundScore = 50 + bonus;
       setScore(prev => prev + roundScore);
       
+      playSound('correct');
       toast({
         title: '✅ Correct!',
         description: `+${roundScore} points`,
@@ -165,9 +171,11 @@ export default function BSTInsertGame() {
     
     const newLives = lives - 1;
     setLives(newLives);
+    playSound('wrong');
     
     if (newLives <= 0) {
       setGameState('lost');
+      playSound('gameOver');
       toast({
         title: '💔 Game Over!',
         description: `Final Score: ${score}`,
@@ -221,6 +229,9 @@ export default function BSTInsertGame() {
           </div>
           
           <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)}>
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <div className="flex items-center gap-1">
               {[...Array(3)].map((_, i) => (
                 <Heart

@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TreeVisualization, TreeNodeData } from '@/components/learn/TreeVisualization';
-import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play } from 'lucide-react';
+import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type GameState = 'ready' | 'playing' | 'won' | 'lost';
 
@@ -88,6 +89,8 @@ function isBalanced(tree: TreeNodeData | null): boolean {
 export default function TreeBuilderGame() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playSound } = useSoundEffects(soundEnabled);
   
   const [gameState, setGameState] = useState<GameState>('ready');
   const [lives, setLives] = useState(3);
@@ -118,9 +121,11 @@ export default function TreeBuilderGame() {
   const handleTimeout = () => {
     const newLives = lives - 1;
     setLives(newLives);
+    playSound('wrong');
     
     if (newLives <= 0) {
       setGameState('lost');
+      playSound('gameOver');
       toast({
         title: '💔 Game Over!',
         description: `Final Score: ${score}`,
@@ -143,6 +148,7 @@ export default function TreeBuilderGame() {
     setLevel(0);
     setTimeLeft(60);
     setTree({ id: 'root', value: Math.floor(Math.random() * 90) + 10 });
+    playSound('click');
   };
 
   const resetLevel = () => {
@@ -153,6 +159,7 @@ export default function TreeBuilderGame() {
   const handleAddNode = (parentId: string, side: 'left' | 'right') => {
     if (gameState !== 'playing' || !tree) return;
     
+    playSound('click');
     const value = Math.floor(Math.random() * 90) + 10;
     const newNode: TreeNodeData = {
       id: `${Date.now()}`,
@@ -182,6 +189,7 @@ export default function TreeBuilderGame() {
       setTimeLeft(60);
       setTree({ id: 'root', value: Math.floor(Math.random() * 90) + 10 });
       
+      playSound('levelUp');
       toast({
         title: '🎉 Level Complete!',
         description: `+${levelScore} points (${bonus} time bonus)`,
@@ -225,6 +233,9 @@ export default function TreeBuilderGame() {
           
           {/* Stats */}
           <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setSoundEnabled(!soundEnabled)}>
+              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </Button>
             <div className="flex items-center gap-1">
               {[...Array(3)].map((_, i) => (
                 <Heart
