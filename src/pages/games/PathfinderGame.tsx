@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, Flag, Target } from 'lucide-react';
+import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, Flag, Target, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type GameState = 'ready' | 'playing' | 'won' | 'lost';
 type CellType = 'empty' | 'wall' | 'start' | 'end' | 'path' | 'visited' | 'wrong';
@@ -122,6 +123,8 @@ function findShortestPath(grid: Cell[][]): [number, number][] | null {
 export default function PathfinderGame() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playSound } = useSoundEffects(soundEnabled);
   
   const [gameState, setGameState] = useState<GameState>('ready');
   const [lives, setLives] = useState(3);
@@ -151,9 +154,11 @@ export default function PathfinderGame() {
   const handleTimeout = () => {
     const newLives = lives - 1;
     setLives(newLives);
+    playSound('wrong');
     
     if (newLives <= 0) {
       setGameState('lost');
+      playSound('gameOver');
       toast({ title: '💔 Game Over!', description: `Final Score: ${score}`, variant: 'destructive' });
     } else {
       toast({ title: '⏱️ Time\'s up!', description: `${newLives} lives left`, variant: 'destructive' });
@@ -167,6 +172,7 @@ export default function PathfinderGame() {
     setScore(0);
     setLevel(0);
     generateNewLevel();
+    playSound('click');
   };
 
   const generateNewLevel = () => {
@@ -190,6 +196,8 @@ export default function PathfinderGame() {
       toast({ title: '⚠️ Must move to adjacent cell', variant: 'destructive' });
       return;
     }
+    
+    playSound('click');
     
     // Check if backtracking
     if (userPath.length > 1) {
@@ -221,6 +229,7 @@ export default function PathfinderGame() {
       setScore(prev => prev + levelScore);
       setLevel(prev => prev + 1);
       
+      playSound('levelUp');
       toast({
         title: '🎉 Level Complete!',
         description: `+${levelScore} points (${Math.round(pathEfficiency * 100)}% efficient)`,

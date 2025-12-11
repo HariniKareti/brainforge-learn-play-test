@@ -13,6 +13,9 @@ import TreeBuilderGame from "./pages/games/TreeBuilderGame";
 import BSTInsertGame from "./pages/games/BSTInsertGame";
 import TraversalRaceGame from "./pages/games/TraversalRaceGame";
 import PathfinderGame from "./pages/games/PathfinderGame";
+import TestHub from "./pages/TestHub";
+import EndlessQuiz from "./pages/games/EndlessQuiz";
+import SpeedRound from "./pages/games/SpeedRound";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +38,9 @@ const App = () => (
             <Route path="/play/bst-insert" element={<BSTInsertGame />} />
             <Route path="/play/traversal-race" element={<TraversalRaceGame />} />
             <Route path="/play/pathfinder" element={<PathfinderGame />} />
+            <Route path="/test" element={<TestHub />} />
+            <Route path="/test/endless-quiz" element={<EndlessQuiz />} />
+            <Route path="/test/speed-round" element={<SpeedRound />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

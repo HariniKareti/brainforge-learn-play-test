@@ -61,7 +61,7 @@ export default function Dashboard() {
             icon={Target}
             to="/test"
             color="accent"
-            available={false}
+            available
           />
         </section>
       </main>

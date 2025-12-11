@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TreeVisualization, TreeNodeData } from '@/components/learn/TreeVisualization';
-import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, Check, X } from 'lucide-react';
+import { ArrowLeft, Heart, Trophy, Clock, RotateCcw, Play, Check, X, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type GameState = 'ready' | 'playing' | 'checking' | 'lost';
 type TraversalType = 'inorder' | 'preorder' | 'postorder' | 'bfs';
@@ -88,6 +89,8 @@ function getAllValues(root: TreeNodeData | null): number[] {
 export default function TraversalRaceGame() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playSound } = useSoundEffects(soundEnabled);
   
   const [gameState, setGameState] = useState<GameState>('ready');
   const [lives, setLives] = useState(3);
@@ -119,9 +122,11 @@ export default function TraversalRaceGame() {
   const handleTimeout = () => {
     const newLives = lives - 1;
     setLives(newLives);
+    playSound('wrong');
     
     if (newLives <= 0) {
       setGameState('lost');
+      playSound('gameOver');
       toast({
         title: '💔 Game Over!',
         description: `Final Score: ${score}`,
@@ -143,6 +148,7 @@ export default function TraversalRaceGame() {
     setScore(0);
     setRound(0);
     generateNewRound();
+    playSound('click');
   };
 
   const generateNewRound = () => {
@@ -165,6 +171,7 @@ export default function TraversalRaceGame() {
   const handleValueClick = (value: number) => {
     if (gameState !== 'playing') return;
     
+    playSound('click');
     const newUserOrder = [...userOrder, value];
     setUserOrder(newUserOrder);
     setAvailableValues(prev => prev.filter((v, i) => prev.indexOf(v) !== prev.indexOf(value) || i !== prev.indexOf(value)));
@@ -193,6 +200,7 @@ export default function TraversalRaceGame() {
       setScore(prev => prev + roundScore);
       setRound(prev => prev + 1);
       
+      playSound('correct');
       toast({
         title: '🎉 Correct!',
         description: `+${roundScore} points`,
@@ -202,9 +210,11 @@ export default function TraversalRaceGame() {
     } else {
       const newLives = lives - 1;
       setLives(newLives);
+      playSound('wrong');
       
       if (newLives <= 0) {
         setGameState('lost');
+        playSound('gameOver');
         toast({
           title: '💔 Game Over!',
           description: `Final Score: ${score}`,
